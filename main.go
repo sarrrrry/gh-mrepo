@@ -2,25 +2,51 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
-	"github.com/cli/go-gh/v2/pkg/api"
+	"github.com/sarrrrry/gh-mrepo/internal/app"
+	"github.com/sarrrrry/gh-mrepo/internal/config"
+	"github.com/sarrrrry/gh-mrepo/internal/executor"
+	"github.com/sarrrrry/gh-mrepo/internal/selector"
 )
 
 func main() {
-	fmt.Println("hi world, this is the gh-mrepo extension!")
-	client, err := api.DefaultRESTClient()
+	user, args := extractUserFlag(os.Args[1:])
+
+	home, err := os.UserHomeDir()
 	if err != nil {
-		fmt.Println(err)
-		return
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
 	}
-	response := struct {Login string}{}
-	err = client.Get("user", &response)
-	if err != nil {
-		fmt.Println(err)
-		return
+	configPath := filepath.Join(home, ".config", "gh-mrepo", "config.toml")
+
+	loader := config.NewLoader(configPath)
+	sel := selector.New()
+	exec := executor.New()
+
+	a := app.New(loader, sel, exec)
+	if err := a.Run(user, args); err != nil {
+		if exitErr, ok := err.(*executor.ExitError); ok {
+			os.Exit(exitErr.Code)
+		}
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
 	}
-	fmt.Printf("running as %s\n", response.Login)
 }
 
-// For more examples of using go-gh, see:
-// https://github.com/cli/go-gh/blob/trunk/example_gh_test.go
+// extractUserFlag は引数から --user <value> を抽出し、残りの引数を返す。
+func extractUserFlag(args []string) (string, []string) {
+	var user string
+	var rest []string
+
+	for i := 0; i < len(args); i++ {
+		if args[i] == "--user" && i+1 < len(args) {
+			user = args[i+1]
+			i++ // skip value
+			continue
+		}
+		rest = append(rest, args[i])
+	}
+	return user, rest
+}
