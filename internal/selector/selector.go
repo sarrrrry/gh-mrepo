@@ -26,6 +26,7 @@ func (s *Selector) Select(profiles []domain.Profile) (domain.Profile, error) {
 	err := huh.NewSelect[int]().
 		Title("Select profile").
 		Options(options...).
+		Filtering(true).
 		Value(&selected).
 		Run()
 	if err != nil {
