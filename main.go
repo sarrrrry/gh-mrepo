@@ -26,7 +26,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Fprintf(os.Stdout, "config.toml created: %s\n", configPath)
+		fmt.Printf("config.toml created: %s\n", configPath)
 		return
 	}
 
