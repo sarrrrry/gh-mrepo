@@ -20,7 +20,7 @@ root = "/home/user/repos"
 [personal]
 gh_config_dir = "/home/user/.config/gh-personal"
 `
-	if err := os.WriteFile(tomlPath, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(tomlPath, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -75,7 +75,7 @@ func TestLoad_TildeExpansion(t *testing.T) {
 gh_config_dir = "~/.config/gh-work"
 root = "~/repos"
 `
-	if err := os.WriteFile(tomlPath, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(tomlPath, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -106,7 +106,7 @@ func TestLoad_EmptyGHConfigDir(t *testing.T) {
 [work]
 gh_config_dir = ""
 `
-	if err := os.WriteFile(tomlPath, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(tomlPath, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -129,7 +129,7 @@ func TestLoad_NoProfiles(t *testing.T) {
 	dir := t.TempDir()
 	tomlPath := filepath.Join(dir, "config.toml")
 	// 空のTOML
-	if err := os.WriteFile(tomlPath, []byte(""), 0644); err != nil {
+	if err := os.WriteFile(tomlPath, []byte(""), 0o644); err != nil {
 		t.Fatal(err)
 	}
 

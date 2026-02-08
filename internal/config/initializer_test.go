@@ -54,7 +54,7 @@ func TestInit_ErrorWhenConfigAlreadyExists(t *testing.T) {
 	dir := t.TempDir()
 	configPath := filepath.Join(dir, "config.toml")
 
-	if err := os.WriteFile(configPath, []byte("existing"), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte("existing"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
