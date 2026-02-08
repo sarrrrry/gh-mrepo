@@ -21,6 +21,15 @@ func main() {
 	}
 	configPath := filepath.Join(home, ".config", "gh-mrepo", "config.toml")
 
+	if len(args) > 0 && args[0] == "init" {
+		if err := config.NewInitializer().Init(configPath); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Fprintf(os.Stdout, "config.toml created: %s\n", configPath)
+		return
+	}
+
 	loader := config.NewLoader(configPath)
 	sel := selector.New()
 	exec := executor.New()
