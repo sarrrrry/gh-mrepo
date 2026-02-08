@@ -1,4 +1,8 @@
-# gh-mrepo
+![header](https://capsule-render.vercel.app/api?type=waving&height=300&color=gradient&text=gh-mrepo)
+
+[![Go](https://img.shields.io/github/go-mod/go-version/sarrrrry/gh-mrepo)](https://go.dev/)
+[![Release](https://img.shields.io/github/v/release/sarrrrry/gh-mrepo)](https://github.com/sarrrrry/gh-mrepo/releases/latest)
+[![CI](https://img.shields.io/github/actions/workflow/status/sarrrrry/gh-mrepo/release.yml?label=release)](https://github.com/sarrrrry/gh-mrepo/actions/workflows/release.yml)
 
 A [gh](https://cli.github.com/) extension to run `gh` commands with multiple GitHub accounts.
 
