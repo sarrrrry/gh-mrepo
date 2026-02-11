@@ -18,3 +18,7 @@ type GHExecutor interface {
 type UserResolver interface {
 	ResolveGitHubUser(ghConfigDir string) (string, error)
 }
+
+type DirScanner interface {
+	ScanLocalRepos(root string) ([]string, error)
+}

@@ -2,11 +2,13 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/sarrrrry/gh-mrepo/internal/app"
 	"github.com/sarrrrry/gh-mrepo/internal/config"
@@ -34,6 +36,62 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Printf("config.toml created: %s\n", configPath)
+		return
+	}
+
+	if len(args) > 0 && args[0] == "lls" {
+		allFlag, jsonFlag := extractLlsFlags(args[1:])
+		loader := config.NewLoader(configPath)
+		resolver := config.NewHostResolver()
+		scanner := executor.NewFsScanner()
+		localLister := app.NewLocalLister(loader, resolver, scanner)
+
+		profiles, err := loader.Load()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
+		var selected []domain.Profile
+		if allFlag {
+			selected = profiles
+		} else {
+			sel := selector.New()
+			p, err := sel.Select(profiles)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			selected = []domain.Profile{p}
+		}
+
+		if jsonFlag {
+			repos := localLister.CollectLocalRepos(selected)
+			enc := json.NewEncoder(os.Stdout)
+			enc.SetIndent("", "  ")
+			if err := enc.Encode(repos); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		}
+
+		var buf bytes.Buffer
+		if allFlag {
+			if err := localLister.ListLocal(&buf); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+		} else {
+			if err := localLister.ListLocalProfile(selected[0], &buf); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+		}
+		if err := viewInPager(buf.Bytes()); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 		return
 	}
 
@@ -114,6 +172,30 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+// extractLlsFlags は引数から -a/--all と -j/--json を検出する。-aj等の結合フラグにも対応。
+func extractLlsFlags(args []string) (allFlag, jsonFlag bool) {
+	for _, a := range args {
+		switch a {
+		case "--all":
+			allFlag = true
+		case "--json":
+			jsonFlag = true
+		default:
+			if strings.HasPrefix(a, "-") && !strings.HasPrefix(a, "--") {
+				for _, c := range a[1:] {
+					switch c {
+					case 'a':
+						allFlag = true
+					case 'j':
+						jsonFlag = true
+					}
+				}
+			}
+		}
+	}
+	return
 }
 
 // extractAllFlag は引数から --all/-a を検出・除去し、残りの引数とフラグの有無を返す。

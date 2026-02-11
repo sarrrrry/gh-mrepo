@@ -73,3 +73,34 @@ func TestExtractAllFlag(t *testing.T) {
 		})
 	}
 }
+
+func TestExtractLlsFlags(t *testing.T) {
+	tests := []struct {
+		name     string
+		args     []string
+		wantAll  bool
+		wantJSON bool
+	}{
+		{name: "no flags", args: []string{}, wantAll: false, wantJSON: false},
+		{name: "--all", args: []string{"--all"}, wantAll: true, wantJSON: false},
+		{name: "-a", args: []string{"-a"}, wantAll: true, wantJSON: false},
+		{name: "--json", args: []string{"--json"}, wantAll: false, wantJSON: true},
+		{name: "-j", args: []string{"-j"}, wantAll: false, wantJSON: true},
+		{name: "-a -j separate", args: []string{"-a", "-j"}, wantAll: true, wantJSON: true},
+		{name: "-aj combined", args: []string{"-aj"}, wantAll: true, wantJSON: true},
+		{name: "-ja combined", args: []string{"-ja"}, wantAll: true, wantJSON: true},
+		{name: "--all --json", args: []string{"--all", "--json"}, wantAll: true, wantJSON: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotAll, gotJSON := extractLlsFlags(tt.args)
+			if gotAll != tt.wantAll {
+				t.Errorf("all = %v, want %v", gotAll, tt.wantAll)
+			}
+			if gotJSON != tt.wantJSON {
+				t.Errorf("json = %v, want %v", gotJSON, tt.wantJSON)
+			}
+		})
+	}
+}
