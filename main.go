@@ -13,6 +13,9 @@ import (
 
 func main() {
 	user, args := extractUserFlag(os.Args[1:])
+	if user == "" {
+		user = os.Getenv("GH_MREPO_PROFILE")
+	}
 
 	home, err := os.UserHomeDir()
 	if err != nil {
