@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -40,10 +41,15 @@ func main() {
 		lsArgs, allFlag := extractAllFlag(args[1:])
 		if allFlag {
 			loader := config.NewLoader(configPath)
-			exec := executor.New()
+			e := executor.New()
 			resolver := config.NewHostResolver()
-			lister := app.NewLister(loader, exec, resolver)
-			if err := lister.List(lsArgs, os.Stdout); err != nil {
+			lister := app.NewLister(loader, e, resolver)
+			var buf bytes.Buffer
+			if err := lister.List(lsArgs, &buf); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			if err := viewInPager(buf.Bytes()); err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				os.Exit(1)
 			}
@@ -141,6 +147,22 @@ func extractUserFlag(args []string) (string, []string) {
 }
 
 var activeAccountRe = regexp.MustCompile(`account (\S+)`)
+
+// viewInPager は内容をページャ経由で表示する。
+func viewInPager(content []byte) error {
+	pager := os.Getenv("GH_PAGER")
+	if pager == "" {
+		pager = os.Getenv("PAGER")
+	}
+	if pager == "" {
+		pager = "less -R"
+	}
+	cmd := exec.Command("sh", "-c", pager)
+	cmd.Stdin = bytes.NewReader(content)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
 
 // resolveActiveUser は gh auth status --active の出力からアクティブユーザー名を返す。
 func resolveActiveUser() string {
