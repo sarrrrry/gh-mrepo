@@ -2,6 +2,7 @@ package executor
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -59,15 +60,45 @@ func (e *Executor) ExecRepo(profile domain.Profile, args []string) error {
 // resolveCloneDir はclone先ディレクトリを決定する。
 // argsは"clone"の後の引数。"owner/repo"形式を探して{root}/owner/repoを返す。
 func resolveCloneDir(root string, args []string) string {
-	// args[0]は"clone"、args[1:]からrepo specを探す
 	for _, arg := range args[1:] {
+		if arg == "--" {
+			break
+		}
 		if strings.HasPrefix(arg, "-") {
 			continue
 		}
-		// owner/repo形式 (URLでもなくフラグでもない最初の引数)
-		return filepath.Join(root, arg)
+		// repo specは必ず"/"か":"を含む (owner/repo, URL形式)
+		// フラグの値 (例: --depth "1") を誤認識しないようにする
+		if !strings.Contains(arg, "/") && !strings.Contains(arg, ":") {
+			continue
+		}
+		return filepath.Join(root, extractOwnerRepo(arg))
 	}
 	return ""
+}
+
+// extractOwnerRepo は引数からowner/repo部分を抽出する。
+// HTTPS URL, SSH URL, owner/repo形式に対応し、.gitサフィックスを除去する。
+func extractOwnerRepo(arg string) string {
+	// HTTPS URL: https://github.com/owner/repo.git
+	if u, err := url.Parse(arg); err == nil && u.Scheme != "" {
+		parts := strings.Split(strings.TrimPrefix(u.Path, "/"), "/")
+		if len(parts) >= 2 {
+			repo := strings.TrimSuffix(parts[1], ".git")
+			return parts[0] + "/" + repo
+		}
+	}
+
+	// SSH URL: git@github.com:owner/repo.git
+	if strings.Contains(arg, ":") && !strings.Contains(arg, "://") {
+		colonIdx := strings.Index(arg, ":")
+		path := arg[colonIdx+1:]
+		path = strings.TrimSuffix(path, ".git")
+		return path
+	}
+
+	// owner/repo or owner/repo.git
+	return strings.TrimSuffix(arg, ".git")
 }
 
 func appendEnv(env []string, key, value string) []string {
