@@ -51,3 +51,59 @@ func TestNewProfile_EmptyName(t *testing.T) {
 		t.Errorf("err = %v, want %v", err, domain.ErrEmptyName)
 	}
 }
+
+func TestFindByDirectory_Match(t *testing.T) {
+	profiles := []domain.Profile{
+		{Name: "personal", GHConfigDir: "/config/personal", Root: "/home/user/personal"},
+		{Name: "work", GHConfigDir: "/config/work", Root: "/home/user/work"},
+	}
+
+	p, err := domain.FindByDirectory(profiles, "/home/user/work/some-repo")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if p.Name != "work" {
+		t.Errorf("Name = %q, want %q", p.Name, "work")
+	}
+}
+
+func TestFindByDirectory_FirstMatch(t *testing.T) {
+	profiles := []domain.Profile{
+		{Name: "parent", GHConfigDir: "/config/parent", Root: "/home/user"},
+		{Name: "child", GHConfigDir: "/config/child", Root: "/home/user/child"},
+	}
+
+	p, err := domain.FindByDirectory(profiles, "/home/user/child/repo")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if p.Name != "parent" {
+		t.Errorf("Name = %q, want %q (first match wins)", p.Name, "parent")
+	}
+}
+
+func TestFindByDirectory_NoMatch(t *testing.T) {
+	profiles := []domain.Profile{
+		{Name: "work", GHConfigDir: "/config/work", Root: "/home/user/work"},
+	}
+
+	_, err := domain.FindByDirectory(profiles, "/tmp/other")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestFindByDirectory_SkipsEmptyRoot(t *testing.T) {
+	profiles := []domain.Profile{
+		{Name: "noroot", GHConfigDir: "/config/noroot", Root: ""},
+		{Name: "work", GHConfigDir: "/config/work", Root: "/home/user/work"},
+	}
+
+	p, err := domain.FindByDirectory(profiles, "/home/user/work/repo")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if p.Name != "work" {
+		t.Errorf("Name = %q, want %q", p.Name, "work")
+	}
+}

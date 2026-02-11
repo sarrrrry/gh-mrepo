@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/sarrrrry/gh-mrepo/internal/app"
 	"github.com/sarrrrry/gh-mrepo/internal/config"
+	"github.com/sarrrrry/gh-mrepo/internal/domain"
 	"github.com/sarrrrry/gh-mrepo/internal/executor"
 	"github.com/sarrrrry/gh-mrepo/internal/selector"
 )
@@ -30,6 +32,41 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Printf("config.toml created: %s\n", configPath)
+		return
+	}
+
+	if len(args) > 0 && args[0] == "switch" {
+		loader := config.NewLoader(configPath)
+		profiles, err := loader.Load()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		wd, _ := os.Getwd()
+		p, err := domain.FindByDirectory(profiles, wd)
+		if err != nil {
+			sel := selector.New()
+			p, err = sel.Select(profiles)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+		}
+		username, err := config.ResolveGitHubUser(p.GHConfigDir)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		cmd := exec.Command("gh", "auth", "switch", "--user", username)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				os.Exit(exitErr.ExitCode())
+			}
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 		return
 	}
 
