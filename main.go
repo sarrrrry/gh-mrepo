@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 
 	"github.com/sarrrrry/gh-mrepo/internal/app"
 	"github.com/sarrrrry/gh-mrepo/internal/config"
@@ -45,8 +46,17 @@ func main() {
 		wd, _ := os.Getwd()
 		p, err := domain.FindByDirectory(profiles, wd)
 		if err != nil {
+			activeUser := resolveActiveUser()
+			activeIdx := -1
+			for i, prof := range profiles {
+				u, e := config.ResolveGitHubUser(prof.GHConfigDir)
+				if e == nil && u == activeUser {
+					activeIdx = i
+					break
+				}
+			}
 			sel := selector.New()
-			p, err = sel.Select(profiles)
+			p, err = sel.SelectForSwitch(profiles, activeIdx)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				os.Exit(1)
@@ -98,4 +108,19 @@ func extractUserFlag(args []string) (string, []string) {
 		rest = append(rest, args[i])
 	}
 	return user, rest
+}
+
+var activeAccountRe = regexp.MustCompile(`account (\S+)`)
+
+// resolveActiveUser は gh auth status --active の出力からアクティブユーザー名を返す。
+func resolveActiveUser() string {
+	out, err := exec.Command("gh", "auth", "status", "--active").CombinedOutput()
+	if err != nil {
+		return ""
+	}
+	m := activeAccountRe.FindSubmatch(out)
+	if m == nil {
+		return ""
+	}
+	return string(m[1])
 }

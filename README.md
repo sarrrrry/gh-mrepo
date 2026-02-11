@@ -66,10 +66,47 @@ root = "~/repos/personal"
 
 ## Usage
 
+`gh mrepo` wraps `gh repo` commands with profile-aware `GH_CONFIG_DIR`.
+
 ```bash
-# Select a profile interactively and run a gh command
+# Select a profile interactively and run a gh repo command
 gh mrepo repo list
 
 # Specify a profile directly
 gh mrepo --user work repo list
 ```
+
+You can also set the profile via the `GH_MREPO_PROFILE` environment variable:
+
+```bash
+export GH_MREPO_PROFILE=work
+gh mrepo repo clone owner/repo
+```
+
+### Clone with auto-routing
+
+When `root` is set, `gh mrepo repo clone` automatically routes the clone destination under the profile's root directory:
+
+```bash
+gh mrepo --user work repo clone owner/repo
+# => cloned to ~/repos/work/owner/repo
+```
+
+### Switch account
+
+`gh mrepo switch` switches the active `gh` account (`gh auth switch`) based on the profile configuration.
+
+```bash
+gh mrepo switch
+```
+
+- If the current directory is under a profile's `root`, the account is switched automatically.
+- Otherwise, an interactive selector is displayed. The currently active account is highlighted with a green `✓ active` label.
+
+```
+Switch account
+> personal (~/repos/personal/)
+  work (~/repos/work/) ✓ active
+```
+
+The GitHub username is resolved from `hosts.yml` in each profile's `gh_config_dir`, so the profile name (TOML section name) does not need to match the GitHub username.
