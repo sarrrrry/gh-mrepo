@@ -37,15 +37,19 @@ func main() {
 	}
 
 	if len(args) > 0 && args[0] == "ls" {
-		loader := config.NewLoader(configPath)
-		exec := executor.New()
-		resolver := config.NewHostResolver()
-		lister := app.NewLister(loader, exec, resolver)
-		if err := lister.List(args[1:], os.Stdout); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+		lsArgs, allFlag := extractAllFlag(args[1:])
+		if allFlag {
+			loader := config.NewLoader(configPath)
+			exec := executor.New()
+			resolver := config.NewHostResolver()
+			lister := app.NewLister(loader, exec, resolver)
+			if err := lister.List(lsArgs, os.Stdout); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			return
 		}
-		return
+		args = append([]string{"list"}, lsArgs...)
 	}
 
 	if len(args) > 0 && args[0] == "switch" {
@@ -104,6 +108,20 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+// extractAllFlag は引数から --all/-a を検出・除去し、残りの引数とフラグの有無を返す。
+func extractAllFlag(args []string) ([]string, bool) {
+	var rest []string
+	all := false
+	for _, a := range args {
+		if a == "--all" || a == "-a" {
+			all = true
+			continue
+		}
+		rest = append(rest, a)
+	}
+	return rest, all
 }
 
 // extractUserFlag は引数から --user <value> を抽出し、残りの引数を返す。
