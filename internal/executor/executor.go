@@ -101,6 +101,28 @@ func extractOwnerRepo(arg string) string {
 	return strings.TrimSuffix(arg, ".git")
 }
 
+func (e *Executor) ExecRepoCapture(profile domain.Profile, args []string) (string, error) {
+	ghArgs := append([]string{"repo"}, args...)
+
+	ghPath, err := exec.LookPath("gh")
+	if err != nil {
+		return "", fmt.Errorf("gh command not found: %w", err)
+	}
+
+	cmd := exec.Command(ghPath, ghArgs...)
+	cmd.Stderr = os.Stderr
+	cmd.Env = appendEnv(os.Environ(), "GH_CONFIG_DIR", profile.GHConfigDir)
+
+	out, err := cmd.Output()
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return "", &ExitError{Code: exitErr.ExitCode()}
+		}
+		return "", err
+	}
+	return string(out), nil
+}
+
 func appendEnv(env []string, key, value string) []string {
 	prefix := key + "="
 	for i, e := range env {

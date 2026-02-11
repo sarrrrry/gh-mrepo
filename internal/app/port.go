@@ -12,4 +12,9 @@ type ProfileSelector interface {
 
 type GHExecutor interface {
 	ExecRepo(profile domain.Profile, args []string) error
+	ExecRepoCapture(profile domain.Profile, args []string) (string, error)
+}
+
+type UserResolver interface {
+	ResolveGitHubUser(ghConfigDir string) (string, error)
 }

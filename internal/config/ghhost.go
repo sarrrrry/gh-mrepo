@@ -8,6 +8,17 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// HostResolver は app.UserResolver を満たすアダプタ。
+type HostResolver struct{}
+
+func NewHostResolver() *HostResolver {
+	return &HostResolver{}
+}
+
+func (h *HostResolver) ResolveGitHubUser(ghConfigDir string) (string, error) {
+	return ResolveGitHubUser(ghConfigDir)
+}
+
 // ResolveGitHubUser は ghConfigDir/hosts.yml を読んで github.com の user を返す。
 func ResolveGitHubUser(ghConfigDir string) (string, error) {
 	data, err := os.ReadFile(filepath.Join(ghConfigDir, "hosts.yml"))

@@ -44,6 +44,10 @@ func (m *mockExecutor) ExecRepo(profile domain.Profile, args []string) error {
 	return m.err
 }
 
+func (m *mockExecutor) ExecRepoCapture(_ domain.Profile, _ []string) (string, error) {
+	return "", nil
+}
+
 // --- テストケース ---
 
 func TestRun_MultipleProfiles_SelectorCalled(t *testing.T) {

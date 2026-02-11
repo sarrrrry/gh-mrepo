@@ -36,6 +36,18 @@ func main() {
 		return
 	}
 
+	if len(args) > 0 && args[0] == "ls" {
+		loader := config.NewLoader(configPath)
+		exec := executor.New()
+		resolver := config.NewHostResolver()
+		lister := app.NewLister(loader, exec, resolver)
+		if err := lister.List(args[1:], os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	if len(args) > 0 && args[0] == "switch" {
 		loader := config.NewLoader(configPath)
 		profiles, err := loader.Load()
