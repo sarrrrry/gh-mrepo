@@ -83,6 +83,48 @@ export GH_MREPO_PROFILE=work
 gh mrepo repo clone owner/repo
 ```
 
+### List remote repositories
+
+`gh mrepo ls` lists remote repositories (`gh repo list`) for a profile.
+
+```bash
+# Select a profile interactively, then list its remote repos
+gh mrepo ls
+
+# List remote repos for all profiles at once
+gh mrepo ls -a
+
+# Pass additional gh repo list flags
+gh mrepo ls -a --limit 50
+```
+
+When `-a`/`--all` is specified, results are grouped by profile and displayed in a pager.
+
+### List local repositories
+
+`gh mrepo lls` lists repositories cloned locally under each profile's `root` directory.
+
+```bash
+# Select a profile interactively, then list its local repos
+gh mrepo lls
+
+# List local repos for all profiles
+gh mrepo lls -a
+
+# Output as JSON
+gh mrepo lls -j
+
+# Combine flags
+gh mrepo lls -aj
+```
+
+| Flag | Description |
+|------|-------------|
+| `-a`/`--all` | List local repos for all profiles |
+| `-j`/`--json` | Output in JSON format (`profile`, `owner`, `repo`) |
+
+Requires `root` to be configured in `config.toml`.
+
 ### Clone with auto-routing
 
 When `root` is set, `gh mrepo repo clone` automatically routes the clone destination under the profile's root directory:

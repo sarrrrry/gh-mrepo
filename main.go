@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -17,6 +18,23 @@ import (
 	"github.com/sarrrrry/gh-mrepo/internal/selector"
 )
 
+// exitOnErr は err が nil でない場合、適切な終了コードでプロセスを終了する。
+func exitOnErr(err error) {
+	if err == nil {
+		return
+	}
+	var execExitErr *executor.ExitError
+	if errors.As(err, &execExitErr) {
+		os.Exit(execExitErr.Code)
+	}
+	var osExitErr *exec.ExitError
+	if errors.As(err, &osExitErr) {
+		os.Exit(osExitErr.ExitCode())
+	}
+	fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+	os.Exit(1)
+}
+
 func main() {
 	user, args := extractUserFlag(os.Args[1:])
 	if user == "" {
@@ -24,17 +42,11 @@ func main() {
 	}
 
 	home, err := os.UserHomeDir()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
+	exitOnErr(err)
 	configPath := filepath.Join(home, ".config", "gh-mrepo", "config.toml")
 
 	if len(args) > 0 && args[0] == "init" {
-		if err := config.NewInitializer().Init(configPath); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
+		exitOnErr(config.NewInitializer().Init(configPath))
 		fmt.Printf("config.toml created: %s\n", configPath)
 		return
 	}
@@ -47,10 +59,7 @@ func main() {
 		localLister := app.NewLocalLister(loader, resolver, scanner)
 
 		profiles, err := loader.Load()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
+		exitOnErr(err)
 
 		var selected []domain.Profile
 		if allFlag {
@@ -58,10 +67,7 @@ func main() {
 		} else {
 			sel := selector.New()
 			p, err := sel.Select(profiles)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
-			}
+			exitOnErr(err)
 			selected = []domain.Profile{p}
 		}
 
@@ -69,29 +75,17 @@ func main() {
 			repos := localLister.CollectLocalRepos(selected)
 			enc := json.NewEncoder(os.Stdout)
 			enc.SetIndent("", "  ")
-			if err := enc.Encode(repos); err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
-			}
+			exitOnErr(enc.Encode(repos))
 			return
 		}
 
 		var buf bytes.Buffer
 		if allFlag {
-			if err := localLister.ListLocal(&buf); err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
-			}
+			exitOnErr(localLister.ListLocal(&buf))
 		} else {
-			if err := localLister.ListLocalProfile(selected[0], &buf); err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
-			}
+			exitOnErr(localLister.ListLocalProfile(selected[0], &buf))
 		}
-		if err := viewInPager(buf.Bytes()); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
+		exitOnErr(viewInPager(buf.Bytes()))
 		return
 	}
 
@@ -103,14 +97,8 @@ func main() {
 			resolver := config.NewHostResolver()
 			lister := app.NewLister(loader, e, resolver)
 			var buf bytes.Buffer
-			if err := lister.List(lsArgs, &buf); err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
-			}
-			if err := viewInPager(buf.Bytes()); err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
-			}
+			exitOnErr(lister.List(lsArgs, &buf))
+			exitOnErr(viewInPager(buf.Bytes()))
 			return
 		}
 		args = append([]string{"list"}, lsArgs...)
@@ -119,10 +107,7 @@ func main() {
 	if len(args) > 0 && args[0] == "switch" {
 		loader := config.NewLoader(configPath)
 		profiles, err := loader.Load()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
+		exitOnErr(err)
 		wd, _ := os.Getwd()
 		p, err := domain.FindByDirectory(profiles, wd)
 		if err != nil {
@@ -137,26 +122,14 @@ func main() {
 			}
 			sel := selector.New()
 			p, err = sel.SelectForSwitch(profiles, activeIdx)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-				os.Exit(1)
-			}
+			exitOnErr(err)
 		}
 		username, err := config.ResolveGitHubUser(p.GHConfigDir)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
+		exitOnErr(err)
 		cmd := exec.Command("gh", "auth", "switch", "--user", username)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			if exitErr, ok := err.(*exec.ExitError); ok {
-				os.Exit(exitErr.ExitCode())
-			}
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
-		}
+		exitOnErr(cmd.Run())
 		return
 	}
 
@@ -165,13 +138,7 @@ func main() {
 	exec := executor.New()
 
 	a := app.New(loader, sel, exec)
-	if err := a.Run(user, args); err != nil {
-		if exitErr, ok := err.(*executor.ExitError); ok {
-			os.Exit(exitErr.Code)
-		}
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
+	exitOnErr(a.Run(user, args))
 }
 
 // extractLlsFlags は引数から -a/--all と -j/--json を検出する。-aj等の結合フラグにも対応。

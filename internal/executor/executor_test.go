@@ -1,6 +1,8 @@
 package executor
 
 import (
+	"errors"
+	"os/exec"
 	"path/filepath"
 	"testing"
 )
@@ -51,6 +53,32 @@ func TestExtractOwnerRepo(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestWrapExitError(t *testing.T) {
+	t.Run("exec.ExitErrorをexecutor.ExitErrorに変換", func(t *testing.T) {
+		// 存在しないコマンドを実行してExitErrorを生成
+		cmd := exec.Command("sh", "-c", "exit 42")
+		origErr := cmd.Run()
+
+		got := wrapExitError(origErr)
+
+		var exitErr *ExitError
+		if !errors.As(got, &exitErr) {
+			t.Fatalf("wrapExitError() should return *ExitError, got %T", got)
+		}
+		if exitErr.Code != 42 {
+			t.Errorf("ExitError.Code = %d, want 42", exitErr.Code)
+		}
+	})
+
+	t.Run("exec.ExitError以外はそのまま返す", func(t *testing.T) {
+		origErr := errors.New("some error")
+		got := wrapExitError(origErr)
+		if got != origErr {
+			t.Errorf("wrapExitError() should return original error, got %v", got)
+		}
+	})
 }
 
 func TestResolveCloneDir(t *testing.T) {

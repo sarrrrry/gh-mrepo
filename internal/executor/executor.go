@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -27,32 +28,25 @@ func New() *Executor {
 }
 
 func (e *Executor) ExecRepo(profile domain.Profile, args []string) error {
-	ghArgs := append([]string{"repo"}, args...)
+	cmd, err := buildRepoCmd(profile, args)
+	if err != nil {
+		return err
+	}
 
 	// clone + root設定時: clone先パスを追加
 	if profile.Root != "" && len(args) > 0 && args[0] == "clone" {
 		cloneDir := resolveCloneDir(profile.Root, args)
 		if cloneDir != "" {
-			ghArgs = append(ghArgs, cloneDir)
+			cmd.Args = append(cmd.Args, cloneDir)
 		}
 	}
 
-	ghPath, err := exec.LookPath("gh")
-	if err != nil {
-		return fmt.Errorf("gh command not found: %w", err)
-	}
-
-	cmd := exec.Command(ghPath, ghArgs...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Env = appendEnv(os.Environ(), "GH_CONFIG_DIR", profile.GHConfigDir)
 
 	if err := cmd.Run(); err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			return &ExitError{Code: exitErr.ExitCode()}
-		}
-		return err
+		return wrapExitError(err)
 	}
 	return nil
 }
@@ -102,25 +96,39 @@ func extractOwnerRepo(arg string) string {
 }
 
 func (e *Executor) ExecRepoCapture(profile domain.Profile, args []string) (string, error) {
-	ghArgs := append([]string{"repo"}, args...)
-
-	ghPath, err := exec.LookPath("gh")
+	cmd, err := buildRepoCmd(profile, args)
 	if err != nil {
-		return "", fmt.Errorf("gh command not found: %w", err)
+		return "", err
 	}
 
-	cmd := exec.Command(ghPath, ghArgs...)
 	cmd.Stderr = os.Stderr
-	cmd.Env = appendEnv(os.Environ(), "GH_CONFIG_DIR", profile.GHConfigDir)
 
 	out, err := cmd.Output()
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			return "", &ExitError{Code: exitErr.ExitCode()}
-		}
-		return "", err
+		return "", wrapExitError(err)
 	}
 	return string(out), nil
+}
+
+// buildRepoCmd は "gh repo ..." コマンドを構築する。
+func buildRepoCmd(profile domain.Profile, args []string) (*exec.Cmd, error) {
+	ghArgs := append([]string{"repo"}, args...)
+	ghPath, err := exec.LookPath("gh")
+	if err != nil {
+		return nil, fmt.Errorf("gh command not found: %w", err)
+	}
+	cmd := exec.Command(ghPath, ghArgs...)
+	cmd.Env = appendEnv(os.Environ(), "GH_CONFIG_DIR", profile.GHConfigDir)
+	return cmd, nil
+}
+
+// wrapExitError は exec.ExitError を executor.ExitError に変換する。
+func wrapExitError(err error) error {
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		return &ExitError{Code: exitErr.ExitCode()}
+	}
+	return err
 }
 
 func appendEnv(env []string, key, value string) []string {

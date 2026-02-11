@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/charmbracelet/lipgloss"
+
 	"github.com/sarrrrry/gh-mrepo/internal/domain"
 )
 
@@ -80,27 +81,27 @@ func FormatResults(results []ProfileResult, w io.Writer) {
 
 	for i, r := range results {
 		if i > 0 {
-			fmt.Fprintln(w)
+			_, _ = fmt.Fprintln(w)
 		}
 
 		headerText := r.Profile.Name
 		if r.Username != "" {
 			headerText += fmt.Sprintf(" (@%s)", r.Username)
 		}
-		fmt.Fprintln(w, headerStyle.Render(headerText))
-		fmt.Fprintln(w, separator)
+		_, _ = fmt.Fprintln(w, headerStyle.Render(headerText))
+		_, _ = fmt.Fprintln(w, separator)
 
 		if r.Err != nil {
-			fmt.Fprintln(w, errorStyle.Render(r.Err.Error()))
+			_, _ = fmt.Fprintln(w, errorStyle.Render(r.Err.Error()))
 			continue
 		}
 
 		output := strings.TrimRight(r.Output, "\n")
 		if output == "" {
-			fmt.Fprintln(w, "No repositories")
+			_, _ = fmt.Fprintln(w, "No repositories")
 			continue
 		}
 
-		fmt.Fprintln(w, output)
+		_, _ = fmt.Fprintln(w, output)
 	}
 }

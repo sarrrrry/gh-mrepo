@@ -54,7 +54,7 @@ func TestResolveGitHubUser(t *testing.T) {
 
 func writeHostsYml(t *testing.T, dir, content string) {
 	t.Helper()
-	if err := os.WriteFile(filepath.Join(dir, "hosts.yml"), []byte(content), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "hosts.yml"), []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
 }

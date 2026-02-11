@@ -49,11 +49,11 @@ func TestScanLocalRepos_SkipsFiles(t *testing.T) {
 	root := t.TempDir()
 	mkDir(t, root, "owner/repo")
 	// ownerレベルにファイルを作成
-	if err := os.WriteFile(filepath.Join(root, "README.md"), []byte("hi"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "README.md"), []byte("hi"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	// repoレベルにファイルを作成
-	if err := os.WriteFile(filepath.Join(root, "owner", "notes.txt"), []byte("hi"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "owner", "notes.txt"), []byte("hi"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -118,7 +118,7 @@ func TestScanLocalRepos_SortedOutput(t *testing.T) {
 
 func mkDir(t *testing.T, base string, rel string) {
 	t.Helper()
-	if err := os.MkdirAll(filepath.Join(base, rel), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(base, rel), 0o755); err != nil {
 		t.Fatal(err)
 	}
 }
