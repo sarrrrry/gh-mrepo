@@ -52,6 +52,35 @@ func TestNewProfile_EmptyName(t *testing.T) {
 	}
 }
 
+func TestProfile_GitConfigFields(t *testing.T) {
+	p, err := domain.NewProfile("work", "/home/user/.config/gh", "/home/user/repos")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	p.GitConfigName = "Work User"
+	p.GitConfigEmail = "work@example.com"
+
+	if p.GitConfigName != "Work User" {
+		t.Errorf("GitConfigName = %q, want %q", p.GitConfigName, "Work User")
+	}
+	if p.GitConfigEmail != "work@example.com" {
+		t.Errorf("GitConfigEmail = %q, want %q", p.GitConfigEmail, "work@example.com")
+	}
+}
+
+func TestProfile_GitConfigFieldsEmpty(t *testing.T) {
+	p, err := domain.NewProfile("personal", "/home/user/.config/gh", "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if p.GitConfigName != "" {
+		t.Errorf("GitConfigName = %q, want empty", p.GitConfigName)
+	}
+	if p.GitConfigEmail != "" {
+		t.Errorf("GitConfigEmail = %q, want empty", p.GitConfigEmail)
+	}
+}
+
 func TestFindByDirectory_Match(t *testing.T) {
 	profiles := []domain.Profile{
 		{Name: "personal", GHConfigDir: "/config/personal", Root: "/home/user/personal"},

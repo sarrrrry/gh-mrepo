@@ -130,6 +130,13 @@ func main() {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		exitOnErr(cmd.Run())
+
+		if p.GitConfigName != "" {
+			_ = exec.Command("git", "config", "--local", "user.name", p.GitConfigName).Run()
+		}
+		if p.GitConfigEmail != "" {
+			_ = exec.Command("git", "config", "--local", "user.email", p.GitConfigEmail).Run()
+		}
 		return
 	}
 

@@ -62,6 +62,51 @@ gh_config_dir = "/home/user/.config/gh-personal"
 	}
 }
 
+func TestLoad_GitConfigFields(t *testing.T) {
+	dir := t.TempDir()
+	tomlPath := filepath.Join(dir, "config.toml")
+	content := `
+[work]
+gh_config_dir = "/home/user/.config/gh-work"
+root = "/home/user/repos"
+git_config_name = "Work User"
+git_config_email = "work@example.com"
+
+[personal]
+gh_config_dir = "/home/user/.config/gh-personal"
+`
+	if err := os.WriteFile(tomlPath, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	loader := config.NewLoader(tomlPath)
+	profiles, err := loader.Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	m := make(map[string]domain.Profile)
+	for _, p := range profiles {
+		m[p.Name] = p
+	}
+
+	work := m["work"]
+	if work.GitConfigName != "Work User" {
+		t.Errorf("work.GitConfigName = %q, want %q", work.GitConfigName, "Work User")
+	}
+	if work.GitConfigEmail != "work@example.com" {
+		t.Errorf("work.GitConfigEmail = %q, want %q", work.GitConfigEmail, "work@example.com")
+	}
+
+	personal := m["personal"]
+	if personal.GitConfigName != "" {
+		t.Errorf("personal.GitConfigName = %q, want empty", personal.GitConfigName)
+	}
+	if personal.GitConfigEmail != "" {
+		t.Errorf("personal.GitConfigEmail = %q, want empty", personal.GitConfigEmail)
+	}
+}
+
 func TestLoad_TildeExpansion(t *testing.T) {
 	home, err := os.UserHomeDir()
 	if err != nil {

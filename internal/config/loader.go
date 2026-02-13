@@ -13,8 +13,10 @@ import (
 )
 
 type profileEntry struct {
-	GHConfigDir string `toml:"gh_config_dir"`
-	Root        string `toml:"root"`
+	GHConfigDir    string `toml:"gh_config_dir"`
+	Root           string `toml:"root"`
+	GitConfigName  string `toml:"git_config_name"`
+	GitConfigEmail string `toml:"git_config_email"`
 }
 
 type Loader struct {
@@ -58,6 +60,8 @@ func (l *Loader) Load() ([]domain.Profile, error) {
 		if err != nil {
 			return nil, fmt.Errorf("profile %q: %w", name, err)
 		}
+		p.GitConfigName = entry.GitConfigName
+		p.GitConfigEmail = entry.GitConfigEmail
 		profiles = append(profiles, p)
 	}
 
