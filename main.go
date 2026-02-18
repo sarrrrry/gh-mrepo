@@ -23,6 +23,18 @@ func exitOnErr(err error) {
 	if err == nil {
 		return
 	}
+
+	var profileErr *app.ProfileError
+	if errors.As(err, &profileErr) {
+		type authChecker interface{ IsAuthError() bool }
+		var checker authChecker
+		if errors.As(profileErr.Err, &checker) && checker.IsAuthError() {
+			fmt.Fprintf(os.Stderr,
+				"\nhint: authentication failed for profile %q. Run the following command to re-authenticate:\n  GH_CONFIG_DIR=%s gh auth login\n",
+				profileErr.Profile.Name, profileErr.Profile.GHConfigDir)
+		}
+	}
+
 	var execExitErr *executor.ExitError
 	if errors.As(err, &execExitErr) {
 		os.Exit(execExitErr.Code)

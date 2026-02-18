@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -93,6 +94,9 @@ func FormatResults(results []ProfileResult, w io.Writer) {
 
 		if r.Err != nil {
 			_, _ = fmt.Fprintln(w, errorStyle.Render(r.Err.Error()))
+			if hint := authHint(r.Err, r.Profile); hint != "" {
+				_, _ = fmt.Fprintln(w, hint)
+			}
 			continue
 		}
 
@@ -104,4 +108,13 @@ func FormatResults(results []ProfileResult, w io.Writer) {
 
 		_, _ = fmt.Fprintln(w, output)
 	}
+}
+
+func authHint(err error, profile domain.Profile) string {
+	type authChecker interface{ IsAuthError() bool }
+	var checker authChecker
+	if !errors.As(err, &checker) || !checker.IsAuthError() {
+		return ""
+	}
+	return fmt.Sprintf("hint: GH_CONFIG_DIR=%s gh auth login", profile.GHConfigDir)
 }

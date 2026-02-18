@@ -173,6 +173,29 @@ func TestRun_ExecutorError(t *testing.T) {
 	}
 }
 
+func TestRun_ReturnsProfileError(t *testing.T) {
+	work := domain.Profile{Name: "work", GHConfigDir: "/path/work"}
+
+	executorErr := errors.New("exec failed")
+	loader := &mockLoader{profiles: []domain.Profile{work}}
+	selector := &mockSelector{}
+	executor := &mockExecutor{err: executorErr}
+
+	a := app.New(loader, selector, executor)
+	err := a.Run("", []string{"clone", "owner/repo"})
+
+	var profileErr *app.ProfileError
+	if !errors.As(err, &profileErr) {
+		t.Fatalf("err should be *ProfileError, got %T", err)
+	}
+	if profileErr.Profile.Name != "work" {
+		t.Errorf("ProfileError.Profile.Name = %q, want %q", profileErr.Profile.Name, "work")
+	}
+	if !errors.Is(profileErr.Err, executorErr) {
+		t.Errorf("ProfileError.Err = %v, want %v", profileErr.Err, executorErr)
+	}
+}
+
 func TestRun_ArgsPassedToExecutor(t *testing.T) {
 	work := domain.Profile{Name: "work", GHConfigDir: "/path/work"}
 

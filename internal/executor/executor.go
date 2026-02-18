@@ -1,8 +1,10 @@
 package executor
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"os/exec"
@@ -14,11 +16,20 @@ import (
 
 // ExitError はgh repoの終了コードを伝播するためのエラー型。
 type ExitError struct {
-	Code int
+	Code   int
+	Stderr string
 }
 
 func (e *ExitError) Error() string {
+	if e.Stderr != "" {
+		return strings.TrimRight(e.Stderr, "\n")
+	}
 	return fmt.Sprintf("exit status %d", e.Code)
+}
+
+func (e *ExitError) IsAuthError() bool {
+	return strings.Contains(e.Stderr, "HTTP 401") ||
+		strings.Contains(e.Stderr, "authentication")
 }
 
 type Executor struct{}
@@ -43,10 +54,12 @@ func (e *Executor) ExecRepo(profile domain.Profile, args []string) error {
 
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+
+	var stderrBuf bytes.Buffer
+	cmd.Stderr = io.MultiWriter(os.Stderr, &stderrBuf)
 
 	if err := cmd.Run(); err != nil {
-		return wrapExitError(err)
+		return wrapExitErrorWithStderr(err, stderrBuf.String())
 	}
 	return nil
 }
@@ -101,11 +114,12 @@ func (e *Executor) ExecRepoCapture(profile domain.Profile, args []string) (strin
 		return "", err
 	}
 
-	cmd.Stderr = os.Stderr
+	var stderrBuf bytes.Buffer
+	cmd.Stderr = &stderrBuf
 
 	out, err := cmd.Output()
 	if err != nil {
-		return "", wrapExitError(err)
+		return "", wrapExitErrorWithStderr(err, stderrBuf.String())
 	}
 	return string(out), nil
 }
@@ -127,6 +141,15 @@ func wrapExitError(err error) error {
 	var exitErr *exec.ExitError
 	if errors.As(err, &exitErr) {
 		return &ExitError{Code: exitErr.ExitCode()}
+	}
+	return err
+}
+
+// wrapExitErrorWithStderr は exec.ExitError を stderr 付き executor.ExitError に変換する。
+func wrapExitErrorWithStderr(err error, stderr string) error {
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		return &ExitError{Code: exitErr.ExitCode(), Stderr: stderr}
 	}
 	return err
 }

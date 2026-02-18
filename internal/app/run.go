@@ -6,6 +6,15 @@ import (
 	"github.com/sarrrrry/gh-mrepo/internal/domain"
 )
 
+// ProfileError はどのプロファイルでエラーが発生したかを示すエラー型。
+type ProfileError struct {
+	Profile domain.Profile
+	Err     error
+}
+
+func (e *ProfileError) Error() string { return e.Err.Error() }
+func (e *ProfileError) Unwrap() error { return e.Err }
+
 type App struct {
 	loader   ConfigLoader
 	selector ProfileSelector
@@ -45,7 +54,10 @@ func (a *App) Run(user string, args []string) error {
 		selected = p
 	}
 
-	return a.executor.ExecRepo(selected, args)
+	if err := a.executor.ExecRepo(selected, args); err != nil {
+		return &ProfileError{Profile: selected, Err: err}
+	}
+	return nil
 }
 
 func findProfile(profiles []domain.Profile, name string) (domain.Profile, error) {

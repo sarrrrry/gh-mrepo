@@ -252,6 +252,56 @@ func TestList_ArgsPassedToExecutor(t *testing.T) {
 	}
 }
 
+// --- 認証エラーを模倣するモック ---
+
+type mockAuthError struct {
+	msg string
+}
+
+func (e *mockAuthError) Error() string    { return e.msg }
+func (e *mockAuthError) IsAuthError() bool { return true }
+
+func TestFormatResults_AuthErrorShowsHint(t *testing.T) {
+	work := domain.Profile{Name: "work", GHConfigDir: "/home/user/.config/gh-work"}
+	results := []app.ProfileResult{
+		{
+			Profile:  work,
+			Username: "octocat-work",
+			Err:      &mockAuthError{msg: "HTTP 401: Bad credentials"},
+		},
+	}
+
+	var buf bytes.Buffer
+	app.FormatResults(results, &buf)
+	out := buf.String()
+
+	if !strings.Contains(out, "HTTP 401: Bad credentials") {
+		t.Errorf("output should contain error message, got:\n%s", out)
+	}
+	if !strings.Contains(out, "hint: GH_CONFIG_DIR=/home/user/.config/gh-work gh auth login") {
+		t.Errorf("output should contain auth hint, got:\n%s", out)
+	}
+}
+
+func TestFormatResults_NonAuthErrorNoHint(t *testing.T) {
+	work := domain.Profile{Name: "work", GHConfigDir: "/home/user/.config/gh-work"}
+	results := []app.ProfileResult{
+		{
+			Profile:  work,
+			Username: "octocat-work",
+			Err:      errors.New("repository not found"),
+		},
+	}
+
+	var buf bytes.Buffer
+	app.FormatResults(results, &buf)
+	out := buf.String()
+
+	if strings.Contains(out, "hint:") {
+		t.Errorf("output should not contain hint for non-auth error, got:\n%s", out)
+	}
+}
+
 type argsCapturingExecutor struct {
 	output       string
 	capturedArgs *[]string
