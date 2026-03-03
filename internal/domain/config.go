@@ -7,4 +7,5 @@ var (
 	ErrEmptyGHConfigDir    = errors.New("gh_config_dir must not be empty")
 	ErrEmptyName           = errors.New("profile name must not be empty")
 	ErrConfigAlreadyExists = errors.New("config file already exists")
+	ErrDuplicateProfile    = errors.New("duplicate profile name")
 )
