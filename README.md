@@ -33,6 +33,21 @@ gh mrepo init
 A template will be created at `~/.config/gh-mrepo/config.toml`.
 If the file already exists, the command will exit with an error.
 
+### Create gh config directories
+
+Each profile requires its own `gh` config directory with authentication.
+Use `GH_CONFIG_DIR` to create a separate config and log in:
+
+```bash
+# Create a config directory for your work account
+GH_CONFIG_DIR=~/.config/gh-work gh auth login
+
+# Create a config directory for your personal account
+GH_CONFIG_DIR=~/.config/gh-personal gh auth login
+```
+
+The directory is created automatically by `gh auth login`.
+
 ### config.toml
 
 `config.toml` defines profiles (GitHub accounts).
@@ -50,6 +65,9 @@ gh_config_dir = "~/.config/gh"
 |-----|----------|-------------|
 | `gh_config_dir` | Yes | Path to the `gh` config directory. Specify a separate directory for each account. |
 | `root` | No | Root directory for cloning repositories. |
+| `git_config_name` | No | `user.name` to set via `git config --local` on `switch`. |
+| `git_config_email` | No | `user.email` to set via `git config --local` on `switch`. |
+| `ssh_identity` | No | Path to SSH private key. When set, `switch` configures `core.sshCommand` to use this key. |
 
 The section name (`[default]`) becomes the profile name.
 Add more sections to use multiple accounts.
@@ -58,10 +76,14 @@ Add more sections to use multiple accounts.
 [work]
 gh_config_dir = "~/.config/gh-work"
 root = "~/repos/work"
+git_config_name = "Work User"
+git_config_email = "work@example.com"
+ssh_identity = "~/.ssh/id_ed25519_work"
 
 [personal]
 gh_config_dir = "~/.config/gh-personal"
 root = "~/repos/personal"
+# ssh_identity is not set -> uses HTTPS + credential helper
 ```
 
 ## Usage
@@ -144,6 +166,8 @@ gh mrepo switch
 
 - If the current directory is under a profile's `root`, the account is switched automatically.
 - Otherwise, an interactive selector is displayed. The currently active account is highlighted with a green `✓ active` label.
+- If `ssh_identity` is set, `core.sshCommand` is configured to use the specified SSH key with `-o IdentitiesOnly=yes`.
+- If `ssh_identity` is not set, `core.sshCommand` is unset (falls back to HTTPS credential helper).
 
 ```
 Switch account

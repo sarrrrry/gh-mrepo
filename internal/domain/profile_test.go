@@ -68,6 +68,28 @@ func TestProfile_GitConfigFields(t *testing.T) {
 	}
 }
 
+func TestProfile_SSHIdentityField(t *testing.T) {
+	p, err := domain.NewProfile("work", "/home/user/.config/gh", "/home/user/repos")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	p.SSHIdentity = "/home/user/.ssh/id_ed25519_work"
+
+	if p.SSHIdentity != "/home/user/.ssh/id_ed25519_work" {
+		t.Errorf("SSHIdentity = %q, want %q", p.SSHIdentity, "/home/user/.ssh/id_ed25519_work")
+	}
+}
+
+func TestProfile_SSHIdentityFieldEmpty(t *testing.T) {
+	p, err := domain.NewProfile("personal", "/home/user/.config/gh", "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if p.SSHIdentity != "" {
+		t.Errorf("SSHIdentity = %q, want empty", p.SSHIdentity)
+	}
+}
+
 func TestProfile_GitConfigFieldsEmpty(t *testing.T) {
 	p, err := domain.NewProfile("personal", "/home/user/.config/gh", "")
 	if err != nil {

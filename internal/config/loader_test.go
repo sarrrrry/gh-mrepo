@@ -107,6 +107,73 @@ gh_config_dir = "/home/user/.config/gh-personal"
 	}
 }
 
+func TestLoad_SSHIdentity(t *testing.T) {
+	dir := t.TempDir()
+	tomlPath := filepath.Join(dir, "config.toml")
+	content := `
+[work]
+gh_config_dir = "/home/user/.config/gh-work"
+root = "/home/user/repos"
+ssh_identity = "/home/user/.ssh/id_ed25519_work"
+
+[personal]
+gh_config_dir = "/home/user/.config/gh-personal"
+`
+	if err := os.WriteFile(tomlPath, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	loader := config.NewLoader(tomlPath)
+	profiles, err := loader.Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	m := make(map[string]domain.Profile)
+	for _, p := range profiles {
+		m[p.Name] = p
+	}
+
+	work := m["work"]
+	if work.SSHIdentity != "/home/user/.ssh/id_ed25519_work" {
+		t.Errorf("work.SSHIdentity = %q, want %q", work.SSHIdentity, "/home/user/.ssh/id_ed25519_work")
+	}
+
+	personal := m["personal"]
+	if personal.SSHIdentity != "" {
+		t.Errorf("personal.SSHIdentity = %q, want empty", personal.SSHIdentity)
+	}
+}
+
+func TestLoad_SSHIdentityTildeExpansion(t *testing.T) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Skip("cannot get home dir")
+	}
+
+	dir := t.TempDir()
+	tomlPath := filepath.Join(dir, "config.toml")
+	content := `
+[work]
+gh_config_dir = "/home/user/.config/gh-work"
+ssh_identity = "~/.ssh/id_ed25519_work"
+`
+	if err := os.WriteFile(tomlPath, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	loader := config.NewLoader(tomlPath)
+	profiles, err := loader.Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	want := filepath.Join(home, ".ssh/id_ed25519_work")
+	if profiles[0].SSHIdentity != want {
+		t.Errorf("SSHIdentity = %q, want %q", profiles[0].SSHIdentity, want)
+	}
+}
+
 func TestLoad_TildeExpansion(t *testing.T) {
 	home, err := os.UserHomeDir()
 	if err != nil {

@@ -12,6 +12,7 @@ type Profile struct {
 	Root           string // clone先ルート (空の場合はデフォルト動作)
 	GitConfigName  string // git config user.name (空の場合は変更しない)
 	GitConfigEmail string // git config user.email (空の場合は変更しない)
+	SSHIdentity    string // SSH秘密鍵パス (空の場合は未設定)
 }
 
 func NewProfile(name, ghConfigDir, root string) (Profile, error) {

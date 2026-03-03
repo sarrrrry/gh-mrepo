@@ -17,6 +17,7 @@ type profileEntry struct {
 	Root           string `toml:"root"`
 	GitConfigName  string `toml:"git_config_name"`
 	GitConfigEmail string `toml:"git_config_email"`
+	SSHIdentity    string `toml:"ssh_identity"`
 }
 
 type Loader struct {
@@ -62,6 +63,13 @@ func (l *Loader) Load() ([]domain.Profile, error) {
 		}
 		p.GitConfigName = entry.GitConfigName
 		p.GitConfigEmail = entry.GitConfigEmail
+
+		sshIdentity, err := expandTilde(entry.SSHIdentity)
+		if err != nil {
+			return nil, err
+		}
+		p.SSHIdentity = sshIdentity
+
 		profiles = append(profiles, p)
 	}
 

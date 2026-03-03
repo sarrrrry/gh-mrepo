@@ -149,6 +149,13 @@ func main() {
 		if p.GitConfigEmail != "" {
 			_ = exec.Command("git", "config", "--local", "user.email", p.GitConfigEmail).Run()
 		}
+
+		if p.SSHIdentity != "" {
+			sshCmd := fmt.Sprintf("ssh -i %s -o IdentitiesOnly=yes", p.SSHIdentity)
+			_ = exec.Command("git", "config", "--local", "core.sshCommand", sshCmd).Run()
+		} else {
+			_ = exec.Command("git", "config", "--local", "--unset", "core.sshCommand").Run()
+		}
 		return
 	}
 
